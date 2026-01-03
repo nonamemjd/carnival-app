@@ -2867,21 +2867,21 @@ function CarnivalGame() {
             {/* Tournament Card */}
             <Card style={{ width: '100%', maxWidth: 320, textAlign: 'center' }}>
               <div style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 8 }}>PRIZE POOL</div>
-              <div style={{ fontSize: 36, fontWeight: 700, color: COLORS.gold, marginBottom: 4 }}>$500</div>
-              <div style={{ fontSize: 24, color: COLORS.textDim, marginBottom: 12 }}>Entry: $3.00</div>
+              <div style={{ fontSize: 36, fontWeight: 700, color: COLORS.gold, marginBottom: 4 }}>$20</div>
+              <div style={{ fontSize: 24, color: COLORS.textDim, marginBottom: 12 }}>Entry: $1.00</div>
               <div style={{ fontSize: 13, color: COLORS.textDim, marginBottom: 20 }}>
                 32 players • 5 rounds • Winner takes all
               </div>
               <Button 
                 size="lg" 
                 onClick={startTournament}
-                disabled={(userData?.balance || 0) < 3}
+                disabled={(userData?.balance || 0) < 1}
               >
-                {(userData?.balance || 0) < 3 ? 'Deposit to Play' : 'Enter Contest'}
+                {(userData?.balance || 0) < 1 ? 'Deposit to Play' : 'Enter Contest'}
               </Button>
-              {(userData?.balance || 0) < 3 && (
+              {(userData?.balance || 0) < 1 && (
                 <p style={{ fontSize: 12, color: COLORS.warning, marginTop: 8, marginBottom: 0 }}>
-                  Minimum $3.00 required to enter
+                  Minimum $1.00 required to enter
                 </p>
               )}
             </Card>
@@ -3302,7 +3302,7 @@ function CarnivalGame() {
             </p>
             <Card style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 14, color: COLORS.textMuted }}>PRIZE WON</div>
-              <div style={{ fontSize: 36, fontWeight: 700, color: COLORS.gold }}>$500</div>
+              <div style={{ fontSize: 36, fontWeight: 700, color: COLORS.gold }}>$20</div>
             </Card>
             <Button onClick={() => { setScreen('home'); setTournamentState(null); }}>
               Back to Lobby
