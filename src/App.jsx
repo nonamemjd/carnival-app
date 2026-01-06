@@ -2634,46 +2634,57 @@ function CarnivalGame() {
   const [seenTutorials, setSeenTutorials] = useState({});
   const [pendingGame, setPendingGame] = useState(null); // Holds game info while showing tutorial
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Tournament with entry fee
   const startTournament = async () => {
     // Check balance
     if ((userData?.balance || 0) < ENTRY_FEE) return;
+    if (isLoading) return;
     
-    const seed = Math.floor(Math.random() * 1000000);
+    setIsLoading(true);
     
-    // Deduct entry fee from Firestore
-    const userRef = doc(db, 'users', user.uid);
-    await setDoc(userRef, {
-      balance: (userData?.balance || 0) - ENTRY_FEE
-    }, { merge: true });
-    
-    // Log entry transaction
-    await addDoc(collection(db, 'transactions'), {
-      userId: user.uid,
-      type: 'entry',
-      amount: -ENTRY_FEE,
-      tournamentId: seed,
-      createdAt: serverTimestamp(),
-    });
-    
-    const rng = new SeededRandom(seed);
-    
-    // Shuffle all 4 qualifying games - one for each round before finals
-    const gameOrder = rng.shuffle([...QUALIFYING_GAMES]);
-    
-    setTournamentState({
-      seed,
-      round: 1,
-      playersRemaining: 32,
-      playerRank: null,
-      gameOrder, // Pre-determined game for each round
-      roundGame: gameOrder[0], // Round 1 game
-      gameSeed: rng.nextInt(1, 999999),
-      scores: [],
-      status: 'waiting', // waiting, playing, results
-    });
-    setScreen('tournament');
+    try {
+      const seed = Math.floor(Math.random() * 1000000);
+      
+      // Deduct entry fee from Firestore
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        balance: (userData?.balance || 0) - ENTRY_FEE
+      }, { merge: true });
+      
+      // Log entry transaction
+      await addDoc(collection(db, 'transactions'), {
+        userId: user.uid,
+        type: 'entry',
+        amount: -ENTRY_FEE,
+        tournamentId: seed,
+        createdAt: serverTimestamp(),
+      });
+      
+      const rng = new SeededRandom(seed);
+      
+      // Shuffle all 4 qualifying games - one for each round before finals
+      const gameOrder = rng.shuffle([...QUALIFYING_GAMES]);
+      
+      setTournamentState({
+        seed,
+        round: 1,
+        playersRemaining: 32,
+        playerRank: null,
+        gameOrder, // Pre-determined game for each round
+        roundGame: gameOrder[0], // Round 1 game
+        gameSeed: rng.nextInt(1, 999999),
+        scores: [],
+        status: 'waiting', // waiting, playing, results
+      });
+      setIsLoading(false);
+      setShowConfirmModal(false);
+      setScreen('tournament');
+    } catch (error) {
+      console.error('Error starting tournament:', error);
+      setIsLoading(false);
+    }
   };
   
   const startRound = () => {
@@ -3408,18 +3419,19 @@ function CarnivalGame() {
               <Button 
                 variant="secondary" 
                 onClick={() => setShowConfirmModal(false)}
+                disabled={isLoading}
                 style={{ flex: 1 }}
               >
                 Cancel
               </Button>
               <Button 
                 onClick={() => {
-                  setShowConfirmModal(false);
                   startTournament();
                 }}
+                disabled={isLoading}
                 style={{ flex: 1 }}
               >
-                Confirm
+                {isLoading ? 'Entering...' : 'Confirm'}
               </Button>
             </div>
           </div>
