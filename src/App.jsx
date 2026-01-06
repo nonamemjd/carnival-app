@@ -2633,6 +2633,7 @@ function CarnivalGame() {
   const [practiceGame, setPracticeGame] = useState(null);
   const [seenTutorials, setSeenTutorials] = useState({});
   const [pendingGame, setPendingGame] = useState(null); // Holds game info while showing tutorial
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   
   // Tournament with entry fee
   const startTournament = async () => {
@@ -2910,7 +2911,7 @@ function CarnivalGame() {
               </div>
               <Button 
                 size="lg" 
-                onClick={startTournament}
+                onClick={() => setShowConfirmModal(true)}
                 disabled={(userData?.balance || 0) < ENTRY_FEE}
               >
                 {(userData?.balance || 0) < ENTRY_FEE ? 'Deposit to Play' : 'Enter Contest'}
@@ -3349,6 +3350,80 @@ function CarnivalGame() {
             </Button>
           </div>
         </>
+      )}
+      
+      {/* CONFIRMATION MODAL */}
+      {showConfirmModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: 24,
+        }}>
+          <div style={{
+            background: COLORS.bgCard,
+            borderRadius: 20,
+            padding: 28,
+            maxWidth: 320,
+            width: '100%',
+            textAlign: 'center',
+            border: `1px solid ${COLORS.border}`,
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🎪</div>
+            <h3 style={{ fontSize: 22, margin: '0 0 8px', color: COLORS.text }}>Enter Tournament?</h3>
+            <p style={{ fontSize: 14, color: COLORS.textMuted, margin: '0 0 20px' }}>
+              <span style={{ color: COLORS.gold, fontWeight: 700, fontSize: 24 }}>${ENTRY_FEE}.00</span>
+              <br />
+              will be deducted from your balance
+            </p>
+            
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              gap: 12,
+              padding: '16px 0',
+              borderTop: `1px solid ${COLORS.border}`,
+              borderBottom: `1px solid ${COLORS.border}`,
+              marginBottom: 20,
+            }}>
+              <div>
+                <div style={{ fontSize: 11, color: COLORS.textDim }}>CURRENT</div>
+                <div style={{ fontSize: 18, fontWeight: 600, color: COLORS.text }}>${(userData?.balance || 0).toFixed(2)}</div>
+              </div>
+              <div style={{ color: COLORS.textDim, alignSelf: 'center' }}>→</div>
+              <div>
+                <div style={{ fontSize: 11, color: COLORS.textDim }}>AFTER</div>
+                <div style={{ fontSize: 18, fontWeight: 600, color: COLORS.warning }}>${((userData?.balance || 0) - ENTRY_FEE).toFixed(2)}</div>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowConfirmModal(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  startTournament();
+                }}
+                style={{ flex: 1 }}
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
