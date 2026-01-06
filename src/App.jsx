@@ -73,6 +73,9 @@ const GAMES = {
   TURBO_RACE: 'race',
 };
 
+const ENTRY_FEE = 1;
+const PRIZE_POOL = 20;
+
 const GAME_INFO = {
   [GAMES.WHACK_A_MOLE]: { name: 'Whack-a-Mole', icon: '🔨', color: '#ff6b6b' },
   [GAMES.TARGET_SHOOTER]: { name: 'Target Shooter', icon: '🎯', color: '#4ecdc4' },
@@ -2631,9 +2634,28 @@ function CarnivalGame() {
   const [seenTutorials, setSeenTutorials] = useState({});
   const [pendingGame, setPendingGame] = useState(null); // Holds game info while showing tutorial
   
-  // Simulated tournament data
-  const startTournament = () => {
+  // Tournament with entry fee
+  const startTournament = async () => {
+    // Check balance
+    if ((userData?.balance || 0) < ENTRY_FEE) return;
+    
     const seed = Math.floor(Math.random() * 1000000);
+    
+    // Deduct entry fee from Firestore
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, {
+      balance: (userData?.balance || 0) - ENTRY_FEE
+    }, { merge: true });
+    
+    // Log entry transaction
+    await addDoc(collection(db, 'transactions'), {
+      userId: user.uid,
+      type: 'entry',
+      amount: -ENTRY_FEE,
+      tournamentId: seed,
+      createdAt: serverTimestamp(),
+    });
+    
     const rng = new SeededRandom(seed);
     
     // Shuffle all 4 qualifying games - one for each round before finals
@@ -2704,7 +2726,7 @@ function CarnivalGame() {
     setScreen('tournament');
   };
   
-  const nextRound = () => {
+  const nextRound = async () => {
     if (!tournamentState.advances) {
       setScreen('home');
       setTournamentState(null);
@@ -2716,7 +2738,21 @@ function CarnivalGame() {
     const rng = new SeededRandom(tournamentState.seed + newRound);
     
     if (newPlayersRemaining === 1) {
-      // Winner!
+      // Winner! Add prize to balance
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        balance: (userData?.balance || 0) + PRIZE_POOL
+      }, { merge: true });
+      
+      // Log prize transaction
+      await addDoc(collection(db, 'transactions'), {
+        userId: user.uid,
+        type: 'prize',
+        amount: PRIZE_POOL,
+        tournamentId: tournamentState.seed,
+        createdAt: serverTimestamp(),
+      });
+      
       setScreen('winner');
       return;
     }
@@ -2867,21 +2903,21 @@ function CarnivalGame() {
             {/* Tournament Card */}
             <Card style={{ width: '100%', maxWidth: 320, textAlign: 'center' }}>
               <div style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 8 }}>PRIZE POOL</div>
-              <div style={{ fontSize: 36, fontWeight: 700, color: COLORS.gold, marginBottom: 4 }}>$20</div>
-              <div style={{ fontSize: 24, color: COLORS.textDim, marginBottom: 12 }}>Entry: $1.00</div>
+              <div style={{ fontSize: 36, fontWeight: 700, color: COLORS.gold, marginBottom: 4 }}>${PRIZE_POOL}</div>
+              <div style={{ fontSize: 24, color: COLORS.textDim, marginBottom: 12 }}>Entry: ${ENTRY_FEE}.00</div>
               <div style={{ fontSize: 13, color: COLORS.textDim, marginBottom: 20 }}>
                 32 players • 5 rounds • Winner takes all
               </div>
               <Button 
                 size="lg" 
                 onClick={startTournament}
-                disabled={(userData?.balance || 0) < 1}
+                disabled={(userData?.balance || 0) < ENTRY_FEE}
               >
-                {(userData?.balance || 0) < 1 ? 'Deposit to Play' : 'Enter Contest'}
+                {(userData?.balance || 0) < ENTRY_FEE ? 'Deposit to Play' : 'Enter Contest'}
               </Button>
-              {(userData?.balance || 0) < 1 && (
+              {(userData?.balance || 0) < ENTRY_FEE && (
                 <p style={{ fontSize: 12, color: COLORS.warning, marginTop: 8, marginBottom: 0 }}>
-                  Minimum $1.00 required to enter
+                  Minimum ${ENTRY_FEE}.00 required to enter
                 </p>
               )}
             </Card>
@@ -3300,9 +3336,13 @@ function CarnivalGame() {
             <p style={{ color: COLORS.textMuted, marginBottom: 24 }}>
               You defeated 31 players to claim victory!
             </p>
-            <Card style={{ marginBottom: 24 }}>
+            <Card style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 14, color: COLORS.textMuted }}>PRIZE WON</div>
-              <div style={{ fontSize: 36, fontWeight: 700, color: COLORS.gold }}>$20</div>
+              <div style={{ fontSize: 36, fontWeight: 700, color: COLORS.gold }}>${PRIZE_POOL}</div>
+            </Card>
+            <Card style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 14, color: COLORS.textMuted }}>NEW BALANCE</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.success }}>${(userData?.balance || 0).toFixed(2)}</div>
             </Card>
             <Button onClick={() => { setScreen('home'); setTournamentState(null); }}>
               Back to Lobby
